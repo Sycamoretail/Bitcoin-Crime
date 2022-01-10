@@ -3,6 +3,7 @@ var wallet = 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh';   // 所关注的设�
 var ROOT_PATH = './data/visclass/';   // 数据所在根目录
 let fontFamily;
 let DATA;
+const value_threshold = 0.001*1e8;
 
 function set_ui() {
     // 设置字体
@@ -44,24 +45,30 @@ function get_data(data,father,graph,nodes,depth){
                 // 时间因素还需要考虑在内，才能确定钱的具体数额
                 // (也就是说，这里的 k 值随着时间的不同应该是不同的)
                 if(d.time<max_time){
-                    graph.links[graph.links.length] = {"source":data.addr,"target":child,"value":k*d.value,"time":d.time};
+                    if(k*d.value>value_threshold){
+                        graph.links[graph.links.length] = {"source":data.addr,"target":child,"value":k*d.value,"time":d.time};
                      
-                    // 这一孩子节点也加入图中的节点中
-                    if(child in nodes){
-                        graph.nodes[nodes[child]].value += k*d.value;
-                    }
-                    else{
-                        nodes[child] = graph.nodes.length;
-                        graph.nodes[graph.nodes.length] = {"id":child,"value":k*d.value};
-                    }
+                        // 这一孩子节点也加入图中的节点中
+                        if(child in nodes){
+                            graph.nodes[nodes[child]].value += k*d.value;
+                        }
+                        else{
+                            nodes[child] = graph.nodes.length;
+                            graph.nodes[graph.nodes.length] = {"id":child,"value":k*d.value};
+                        }
 
-                    // 从这个孩子节点继续递归
-                    // (不知道数据是不是足够，我就是抓取并处理了一些账户的数据)
-                    d3.json(ROOT_PATH+child+'.json').then(function(n_data){
-                        if(n_data){
-                            get_data(n_data,data.addr,graph,nodes,depth-1);
-                        };
-                    });
+                        // 从这个孩子节点继续递归
+                        // (不知道数据是不是足够，我就是抓取并处理了一些账户的数据)
+                        try{
+                            d3.json(ROOT_PATH+child+'.json').then(function(n_data){
+                                if(n_data){
+                                    get_data(n_data,data.addr,graph,nodes,depth-1);
+                                };
+                            });
+                        }catch(error){
+                            console.log(child,'do not exist');
+                        }
+                    }
                 }
             }
             else{
@@ -89,40 +96,46 @@ function get_graph(data){
 
 // 用来绘制力导向图的函数
 function draw_graph(graph){
+
+    let values = graph.nodes.map(d => d.value);
+    const scale = d3.scaleLinear()
+        .domain([d3.min(values), d3.max(values)])
+        .rangeRound([5, 17]);
+
     let chartDom = document.getElementById('Graph');
     let myChart = echarts.init(chartDom);
     let option;
     
     graph.nodes.forEach(function (node) {
-        node.symbolSize = 5;
+        node.symbolSize = scale(node.value);
     });
     option = {
         title: {
-        text: 'Graph',
-        subtext: 'subgraph',
-        top: 'bottom',
-        left: 'right'
+            text: 'Graph',
+            subtext: 'subgraph',
+            top: 'bottom',
+            left: 'right'
         },
         tooltip: {},
         series: [
-        {
-            // name: 'Les Miserables',
-            type: 'graph',
-            layout: 'force',
-            data: graph.nodes,
-            links: graph.links,
-            roam: true,
-            label: {
-            position: 'right'
-            },
-            force: {
-            repulsion: 100
-            },
-            lineStyle: {
-            color: 'source',
-            curveness: 0.2
+            {
+                // name: 'Les Miserables',
+                type: 'graph',
+                layout: 'force',
+                data: graph.nodes,
+                links: graph.links,
+                roam: true,
+                label: {
+                    position: 'right'
+                },
+                force: {
+                    repulsion: 100
+                },
+                lineStyle: {
+                    color: 'source',
+                    curveness: 0.2
+                }
             }
-        }
         ]
     };
     myChart.setOption(option);
