@@ -229,7 +229,21 @@ function draw_graph() {
             top: "bottom",
             left: "right",
         },
-        tooltip: {},
+        tooltip: {
+            trigger: 'item',
+            formatter: function (params) {
+                if (params.dataType == 'node') {
+                    return 'id: ' + params.data.id + 
+                    '<br>income: ' + params.data.income.toString() + 
+                    '<br>outcome: ' + params.data.outcome.toString()
+                }
+                if (params.dataType == 'edge') {
+                    return 'source: ' + params.data.source + 
+                    '<br>target: ' + params.data.target + 
+                    '<br>value: ' + params.data.total.toString()
+                }
+            }
+        },
         series: [
             {
                 // name: 'Les Miserables',
