@@ -23,100 +23,32 @@ function set_ui() {
     d3.select("body").style("font-family", fontFamily);
 }
 
-function get_graph() {
-    let links = {};
-    let addr2idx = {};
-    let graph = { nodes: [], links: [] };
-
-    DATA.sort(function (a, b) {
-        return a.time - b.time;
-    });
-
-	timeline = new Set();
-    for (let txn of DATA) {
-        // 对于数据中的每一笔交易
-		timeline.add(txn.time);
-        if (!(txn.target in addr2idx)) {
-            // 收款方不在 addr2idx 中，说明 graph 中还没有该账户的结点
-            addr2idx[txn.target] = graph.nodes.length;
-            let new_node = {
-                index: global_index,
-                balance: 0,
-                income: 0,
-                outcome: 0,
-                address: txn.target,
-                transactions: [],
-            };
-            graph.nodes[graph.nodes.length] = new_node;
-        }
-        if (!(txn.source in addr2idx)) {
-            // 发款方不在 addr2idx 中，说明 graph 中还没有该账户的结点
-            addr2idx[txn.source] = graph.nodes.length;
-            let new_node = {
-                index: global_index,
-                balance: 0,
-                income: 0,
-                outcome: 0,
-                id: txn.source,
-                transactions: [],
-            };
-            graph.nodes[graph.nodes.length] = new_node;
-        }
-
-        // 收款方的 income 增加，transactions 中添加上该条交易记录
-        let idx = graph.nodes[addr2idx[txn.target]].transactions.length;
-        graph.nodes[addr2idx[txn.target]].transactions[idx] = txn;
-        graph.nodes[addr2idx[txn.target]].income += txn.value;
-
-        // 发款方的 outcome 增加，transactions 中添加上该条交易记录
-        idx = graph.nodes[addr2idx[txn.source]].transactions.length;
-        graph.nodes[addr2idx[txn.source]].transactions[idx] = txn;
-        graph.nodes[addr2idx[txn.source]].outcome += txn.value;
-
-        if (!(txn.source in links)) {
-            links[txn.source] = {};
-        }
-        if (!(txn.target in links[txn.source])) {
-            links[txn.source][txn.target] = { total: 0, transactions: [] };
-        }
-
-        // 将该条交易添加到 source 到 target 的边中
-        links[txn.source][txn.target].total += txn.value;
-        idx = links[txn.source][txn.target].transactions.length;
-        links[txn.source][txn.target].transactions[idx] = txn;
-    }
-
-    // 将统计出的边添加到 graph 中
-    for (let s in links) {
-        for (let t in links[s]) {
-            let new_link = links[s][t];
-            new_link.source = s;
-            new_link.target = t;
-            graph.links[graph.links.length] = new_link;
-        }
-    }
-
-    // 计算每个结点的 balance
-    graph.nodes.forEach(function (d) {
-        d.balance = d.income - d.outcome;
-    });
-    return graph;
-}
-
 function init() {
     DATA.sort((a, b) => a.time - b.time);
     nodeSet = new Set();
     linkSet = new Set();
 
     // 得到全图全时间信息
-    let graph = get_graph();
-    let values = graph.nodes.map((d) => d.income);
-	console.log(graph);
-	console.log(values);
-    nodecale = d3
+    timeline = new Set();
+    let income = {};
+    for(let txn of DATA){
+        timeline.add(txn.time);
+        if(!(txn.target in income)){
+            income[txn.target] = txn.value;
+        }
+        else{
+            income[txn.target] += txn.value;
+        }
+    }
+    let values = [];
+    for(let k in income){
+        values.push(income[k]);
+    }
+
+    nodeScale = d3
         .scaleLinear()
         .domain([0, d3.max(values)])
-        .rangeRound([5, 20]);
+        .rangeRound([3, 30]);
 }
 
 function option_update(timestamp, option) {
@@ -137,8 +69,8 @@ function option_update(timestamp, option) {
                 income: 0,
                 balance: 0,
                 outcome: 0,
-                address: item.source,
-                symbolSize: 0,
+                id: item.source,
+                symbolSize: 5,
                 transactions: [],
                 input_queue: [],
                 output_map: {},
@@ -151,7 +83,7 @@ function option_update(timestamp, option) {
                 income: 0,
                 outcome: 0,
                 balance: 0,
-                address: item.target,
+                id: item.target,
                 symbolSize: 5,
                 transactions: [],
                 input_queue: [],
@@ -163,8 +95,8 @@ function option_update(timestamp, option) {
             linkSet.add(item.source + "->" + item.target);
             new_links.push({
                 index: global_index,
-                from: item.source,
-                to: item.target,
+                source: item.source,
+                target: item.target,
                 total: 0,
                 transactions: [],
             });
@@ -179,19 +111,19 @@ function option_update(timestamp, option) {
     function node_update(node) {
         while (node.index < global_index) {
             let item = DATA[node.index];
-            if (item.source == node.address) {
+            if (item.source == node.id) {
                 node.outcome += item.value;
                 node.balance -= item.value;
-                // node.symbolSize = nodeScale(node.balance);
                 node.transactions.push(item);
-            } else if (item.target == node.address) {
+            } else if (item.target == node.id) {
                 node.income += item.value;
                 node.balance += item.value;
-                // node.symbolSize = nodeScale(node.balance);
                 node.transactions.push(item);
             }
             node.index += 1;
         }
+
+        node.symbolSize = nodeScale(node.income);
 
         function input_queue_update() {
             // 更新input queue的接口
@@ -210,7 +142,7 @@ function option_update(timestamp, option) {
     function link_update(link) {
         while (link.index < global_index) {
             let item = DATA[link.index];
-            if (item.source == link.from && item.target == link.to) {
+            if (item.source == link.source && item.target == link.target) {
                 link.total += item.value;
                 link.transactions.push(item);
             }
@@ -225,10 +157,10 @@ function option_update(timestamp, option) {
 		// console.log("node before update:");
 		// console.log(node);
         try {
-            if (!nodeSet.has(node.address)) {
+            if (!nodeSet.has(node.id)) {
                 var exception = {
                     msg: "this node not in the original data",
-                    data: item,
+                    data: node,
                 };
                 throw exception;
             }
@@ -247,10 +179,10 @@ function option_update(timestamp, option) {
 		// console.log("link before update:");
 		// console.log(link);
         try {
-            if (!linkSet.has(link.from + "->" + link.to)) {
+            if (!linkSet.has(link.source + "->" + link.target)) {
                 var exception = {
                     msg: "this link not in the original data",
-                    data: item,
+                    data: link,
                 };
                 throw exception;
             }
@@ -292,8 +224,8 @@ function draw_graph() {
     chart = echarts.init(chartDom);
     let option = {
         title: {
-            text: "Graph",
-            subtext: "subgraph",
+            // text: "Graph",
+            // subtext: "subgraph",
             top: "bottom",
             left: "right",
         },
@@ -374,10 +306,8 @@ function draw_timeline() {
 }
 
 // main() 函数
-// 每次有变化时，调用该函数，传入参数为 DATA
 function main() {
 	init();
-	get_graph();
 	draw_timeline();
     draw_graph();
 }
