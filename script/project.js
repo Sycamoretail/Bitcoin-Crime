@@ -128,10 +128,10 @@ function get_graph(data){
 function main(){
     console.log(graph);
     draw_graph(graph);
-    timeline();
+    draw_timeline();
 }
 
-function timeline(){
+function draw_timeline(){
     var global_width = $(window).width();
     var global_height = $(window).height();
 
