@@ -26,6 +26,9 @@ function set_ui() {
 
 function init() {
     DATA.sort((a, b) => a.time - b.time);
+    // 筛选数据
+    // DATA = DATA.filter((a) => a.target != "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh" || a.value > 100000)
+    DATA = DATA.filter((a) => a.target != "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh")
     nodeSet = new Set();
     linkSet = new Set();
 
@@ -292,6 +295,8 @@ function draw_graph() {
                 links: [],
                 categories: [{name:"被骗钱包"},{name:"涉事钱包"},{name:"可能流向"}],
                 roam: true,
+		// 添加箭头
+		edgeSymbol: ['arrow'],
                 label: {
                     position: "right",
                 },
