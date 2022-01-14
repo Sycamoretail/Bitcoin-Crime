@@ -1,6 +1,6 @@
 var min_time = 0,
     max_time = 1e30; // 时间窗口，min_time 和 max_time 分别表示最小时间和最大时间
-var data_file = "./data/project.json";
+var data_file = "./data/new_project.json";
 const ADDR = "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh";
 let fontFamily;
 let DATA;
@@ -11,7 +11,7 @@ let nodeScale;
 let linkScale;
 let chart;
 let timeline;
-const value_threshold = 0.001 * 1e8;
+const value_threshold = 5000000;
 
 function set_ui() {
     // 设置字体
@@ -28,7 +28,7 @@ function init() {
     DATA.sort((a, b) => a.time - b.time);
     // 筛选数据
     // DATA = DATA.filter((a) => a.target != "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh" || a.value > 100000)
-    DATA = DATA.filter((a) => a.target != "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh")
+    DATA = DATA.filter((a) => a.time < 1596211200 && (a.target != ADDR || (a.target == ADDR && a.value >= value_threshold))) // 2020-08-01 00:00:00
     nodeSet = new Set();
     linkSet = new Set();
 
@@ -52,7 +52,7 @@ function init() {
     nodeScale = d3
         .scaleLinear()
         .domain([0, d3.max(values)])
-        .rangeRound([3, 30]);
+        .rangeRound([10, 50]);
 }
 
 function backward(option){
@@ -101,7 +101,6 @@ function option_update(timestamp, option) {
             new_nodes.push({
                 index: global_index,
                 income: 0,
-                balance: 0,
                 outcome: 0,
                 id: item.source,
                 symbolSize: 5,
@@ -117,7 +116,6 @@ function option_update(timestamp, option) {
                 index: global_index,
                 income: 0,
                 outcome: 0,
-                balance: 0,
                 id: item.target,
                 symbolSize: 5,
                 transactions: [],
@@ -149,11 +147,9 @@ function option_update(timestamp, option) {
             let item = DATA[node.index];
             if (item.source == node.id) {
                 node.outcome += item.value;
-                node.balance -= item.value;
                 node.transactions.push(item);
             } else if (item.target == node.id) {
                 node.income += item.value;
-                node.balance += item.value;
                 node.transactions.push(item);
             }
             node.index += 1;
@@ -234,20 +230,6 @@ function option_update(timestamp, option) {
     return option;
 }
 
-function adjust_data(graph) {
-    // 根据graph中的link数据生成[{time, tx, rx, value}, ...]数据
-    let data = [];
-    graph.links.forEach(function (item) {
-        data.push({
-            time: item.time,
-            source: item.source,
-            target: item.target,
-            value: item.value,
-        });
-    });
-    return data;
-}
-
 // 用来绘制力导向图的函数
 function draw_graph() {
     // let values = graph.nodes.map((d) => d.value);
@@ -295,8 +277,11 @@ function draw_graph() {
                 links: [],
                 categories: [{name:"被骗钱包"},{name:"涉事钱包"},{name:"可能流向"}],
                 roam: true,
-		// 添加箭头
-		edgeSymbol: ['arrow'],
+				// 添加箭头
+				edgeSymbol: ['none', 'arrow'],
+				edgeSymbolSize: [0, 5],
+				// 可拖拽
+				draggable: true,
                 label: {
                     position: "right",
                 },
@@ -343,8 +328,8 @@ function draw_timeline() {
         .min(d3.min(timeline))
         .max(d3.max(timeline))
         .width(0.5 * global_width)
-        .tickFormat(d3.timeFormat("%Y-%m-%d %H:%M:%S"))
-		.step(1000 * 60 * 60 * 24)
+        .tickFormat(d3.timeFormat("%m-%d %Hh"))
+		.step(1000 * 60 * 60)
         .fill("#2196f3")
         .on('onchange', timestamp => {
 			unix_time = timestamp.getTime() / 1000;
