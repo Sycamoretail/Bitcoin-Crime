@@ -1,6 +1,7 @@
 var min_time = 0,
     max_time = 1e30; // 时间窗口，min_time 和 max_time 分别表示最小时间和最大时间
 var data_file = "./data/project.json";
+const ADDR = "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh";
 let fontFamily;
 let DATA;
 let global_index = 0;
@@ -51,16 +52,46 @@ function init() {
         .rangeRound([3, 30]);
 }
 
+function backward(option){
+    nodeSet = new Set();
+    linkSet = new Set();
+    global_index = 0;
+    option.series.forEach(function(d){
+        d.data = [];
+        d.links = [];
+    });
+}
+
 function option_update(timestamp, option) {
     // data为array, 其中元素为{time, source, target, value}
 
     // 首先查看是否有新的节点、边加入
 	// console.log(timestamp, DATA[global_index].time);
+    if(global_index>0&&DATA[global_index-1].time>timestamp){
+        backward(option);
+    }
+
     let new_nodes = [];
     let new_links = [];
     while (global_index < DATA.length) {
         let item = DATA[global_index];
         if (item.time > timestamp) break;
+
+        // 为 source 和 target 账户设置相应的类别
+        let c1,c2;
+        if(item.source==ADDR){
+            c1 = 1;
+            c2 = 2;
+        }
+        else if(item.target==ADDR){
+            c1 = 0;
+            c2 = 1;
+        }
+        else{
+            c1 = 2;
+            c2 = 2;
+        }
+
         // 查看是否是图中尚没有的节点
         if (!nodeSet.has(item.source)) {
             nodeSet.add(item.source);
@@ -74,6 +105,7 @@ function option_update(timestamp, option) {
                 transactions: [],
                 input_queue: [],
                 output_map: {},
+                category: c1,
             });
         } 
 		if (!nodeSet.has(item.target)) {
@@ -88,6 +120,7 @@ function option_update(timestamp, option) {
                 transactions: [],
                 input_queue: [],
                 output_map: {},
+                category: c2,
             });
         }
         // 查看是否是图中没有的边
@@ -244,13 +277,20 @@ function draw_graph() {
                 }
             }
         },
+        legend: [
+        {
+            // selectedMode: 'single',
+            data: ["被骗钱包","涉事钱包","可能流向"]
+        }
+        ],
         series: [
             {
-                // name: 'Les Miserables',
+                // name: '',
                 type: "graph",
                 layout: "force",
                 data: [],
                 links: [],
+                categories: [{name:"被骗钱包"},{name:"涉事钱包"},{name:"可能流向"}],
                 roam: true,
                 label: {
                     position: "right",
