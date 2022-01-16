@@ -328,38 +328,63 @@ function draw_graph() {
                 .attr("viewBox", "0, 0, " + width + ", " + max_height);
             // id, income, outcome
             let meta_datas = [
-                { address: params.data.id },
-                { income: params.data.income / rate},
-                { outcome: params.data.outcome / rate },
+                { wallet: params.data.id },
+                { income: (params.data.income / rate).toFixed(4) + "BTC" },
+                { outcome: (params.data.outcome / rate).toFixed(4) + "BTC" },
             ];
             for (let i = 0; i < meta_datas.length; ++i) {
                 let key = Object.keys(meta_datas[i])[0];
                 let val = meta_datas[i][key];
-				let color = key == "address" ? "yellow" : "lightblue";
+                let color = key == "wallet" ? "yellow" : "lightblue";
                 let g = svg.append("g").attr("transform", function (d, _) {
                     return "translate(0, " + i * entry_height + ")";
                 });
+
                 g.append("rect")
                     .attr("width", width)
                     .attr("height", entry_height)
+                    .attr("rx", 8)
                     .attr("stroke", "white")
                     .attr("stroke-width", 0.8)
                     .attr("fill", color)
                     .attr("fill-opacity", 0.5);
+
                 g.append("text")
-                    .attr("dy", "1em")
-                    .text(key + ": " + val);
+                    .attr("dy", "1.5em")
+                    .text((key == "wallet" ? "" : key + ": ") + val);
             }
             for (let i = 0; i < params.data.transactions.length; ++i) {
-                let g = svg.append("g").attr("transform", function (d, _) {
-                    return (
-                        "translate(0, " +
-                        (i + meta_datas.length) * entry_height +
-                        ")"
-                    );
-                });
+                let g = svg
+                    .append("g")
+                    .attr("transform", function (d, _) {
+                        return (
+                            "translate(0, " +
+                            (i + meta_datas.length) * entry_height +
+                            ")"
+                        );
+                    })
+                    .on("mouseover", function (d) {
+                        let addr =
+                            txn.source == params.data.id
+                                ? txn.target
+                                : txn.source;
+                        d3.select(this).select("text").text(addr);
+						d3.select(this).select("rect").attr("stroke", "black");
+                    })
+                    .on("mouseout", function (d) {
+                        d3.select(this)
+                            .select("text")
+                            .text(
+                                new Date(txn.time * 1000).toUTCString() +
+                                    " " +
+                                    (txn.value / rate).toFixed(4) +
+                                    "BTC"
+                            );
+						d3.select(this).select("rect").attr("stroke", "white")
+                    });
+
                 let txn = params.data.transactions[i];
-                let color, addr;
+                let color = txn.source == params.data.id ? "red" : "lightgreen";
                 if (txn.source == params.data.id) {
                     color = "red";
                     addr = txn.target;
@@ -370,14 +395,21 @@ function draw_graph() {
                 g.append("rect")
                     .attr("width", width)
                     .attr("height", entry_height)
-					.attr("stroke", "white")
-                    .attr("stroke-width", 0.8)
+                    .attr("rx", 8)
+                    .attr("stroke", "white")
+                    .attr("stroke-width", 1)
                     .attr("fill", color)
                     .attr("fill-opacity", 0.5);
 
                 g.append("text")
-                    .attr("dy", "1em")
-                    .text(addr + " " + txn.value / rate);
+                    .attr("dy", "1.5em")
+                    .attr("x", 10)
+                    .text(
+                        new Date(txn.time * 1000).toUTCString() +
+                            " " +
+                            (txn.value / rate).toFixed(4) +
+                            "BTC"
+                    );
             }
         }
         if (params.dataType == "edge") {
