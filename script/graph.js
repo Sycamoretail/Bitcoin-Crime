@@ -1,6 +1,6 @@
 var min_time = 0,
     max_time = 1e30; // 时间窗口，min_time 和 max_time 分别表示最小时间和最大时间
-var data_file = "./data/new_project.json";
+var data_file = "./data/project.json";
 const ADDR = "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh";
 let fontFamily;
 let DATA;
@@ -12,6 +12,7 @@ let linkScale;
 let chart;
 let timeline;
 const value_threshold = 5000000;
+const rate = 1e8;
 
 function set_ui() {
     // 设置字体
@@ -28,24 +29,28 @@ function init() {
     DATA.sort((a, b) => a.time - b.time);
     // 筛选数据
     // DATA = DATA.filter((a) => a.target != "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh" || a.value > 100000)
-    DATA = DATA.filter((a) => a.time < 1596211200 && (a.target != ADDR || (a.target == ADDR && a.value >= value_threshold))) // 2020-08-01 00:00:00
+    DATA = DATA.filter(
+        (a) =>
+            a.time < 1596211200 &&
+            (a.target != ADDR ||
+                (a.target == ADDR && a.value >= value_threshold))
+    ); // 2020-08-01 00:00:00
     nodeSet = new Set();
     linkSet = new Set();
 
     // 得到全图全时间信息
     timeline = new Set();
     let income = {};
-    for(let txn of DATA){
+    for (let txn of DATA) {
         timeline.add(txn.time);
-        if(!(txn.target in income)){
+        if (!(txn.target in income)) {
             income[txn.target] = txn.value;
-        }
-        else{
+        } else {
             income[txn.target] += txn.value;
         }
     }
     let values = [];
-    for(let k in income){
+    for (let k in income) {
         values.push(income[k]);
     }
 
@@ -55,11 +60,11 @@ function init() {
         .rangeRound([10, 50]);
 }
 
-function backward(option){
+function backward(option) {
     nodeSet = new Set();
     linkSet = new Set();
     global_index = 0;
-    option.series.forEach(function(d){
+    option.series.forEach(function (d) {
         d.data = [];
         d.links = [];
     });
@@ -69,8 +74,8 @@ function option_update(timestamp, option) {
     // data为array, 其中元素为{time, source, target, value}
 
     // 首先查看是否有新的节点、边加入
-	// console.log(timestamp, DATA[global_index].time);
-    if(global_index>0&&DATA[global_index-1].time>timestamp){
+    // console.log(timestamp, DATA[global_index].time);
+    if (global_index > 0 && DATA[global_index - 1].time > timestamp) {
         backward(option);
     }
 
@@ -81,16 +86,14 @@ function option_update(timestamp, option) {
         if (item.time > timestamp) break;
 
         // 为 source 和 target 账户设置相应的类别
-        let c1,c2;
-        if(item.source==ADDR){
+        let c1, c2;
+        if (item.source == ADDR) {
             c1 = 1;
             c2 = 2;
-        }
-        else if(item.target==ADDR){
+        } else if (item.target == ADDR) {
             c1 = 0;
             c2 = 1;
-        }
-        else{
+        } else {
             c1 = 2;
             c2 = 2;
         }
@@ -109,8 +112,8 @@ function option_update(timestamp, option) {
                 output_map: {},
                 category: c1,
             });
-        } 
-		if (!nodeSet.has(item.target)) {
+        }
+        if (!nodeSet.has(item.target)) {
             nodeSet.add(item.target);
             new_nodes.push({
                 index: global_index,
@@ -138,8 +141,8 @@ function option_update(timestamp, option) {
         global_index += 1;
     }
 
-	Array.prototype.push.apply(option.series[0].data, new_nodes);
-	Array.prototype.push.apply(option.series[0].links, new_links);
+    Array.prototype.push.apply(option.series[0].data, new_nodes);
+    Array.prototype.push.apply(option.series[0].links, new_links);
 
     // 更新所有节点和边
     function node_update(node) {
@@ -185,9 +188,9 @@ function option_update(timestamp, option) {
 
     // update node
     option.series[0].data.forEach(function (node, idx) {
-		// console.log(idx);
-		// console.log("node before update:");
-		// console.log(node);
+        // console.log(idx);
+        // console.log("node before update:");
+        // console.log(node);
         try {
             if (!nodeSet.has(node.id)) {
                 var exception = {
@@ -196,9 +199,9 @@ function option_update(timestamp, option) {
                 };
                 throw exception;
             }
-			// console.log("node after update:");
+            // console.log("node after update:");
             option.series[0].data[idx] = node_update(node);
-			// console.log(option.series[0].data[idx]);
+            // console.log(option.series[0].data[idx]);
         } catch (e) {
             console.log(e.msg);
             console.log(e.data);
@@ -207,9 +210,9 @@ function option_update(timestamp, option) {
 
     // update link
     option.series[0].links.forEach(function (link, idx) {
-		// console.log(idx);
-		// console.log("link before update:");
-		// console.log(link);
+        // console.log(idx);
+        // console.log("link before update:");
+        // console.log(link);
         try {
             if (!linkSet.has(link.source + "->" + link.target)) {
                 var exception = {
@@ -218,9 +221,9 @@ function option_update(timestamp, option) {
                 };
                 throw exception;
             }
-			// console.log("link after update:");
+            // console.log("link after update:");
             option.series[0].links[idx] = link_update(link);
-			// console.log(option.series[0].links[idx]);
+            // console.log(option.series[0].links[idx]);
         } catch (e) {
             console.log(e.msg);
             console.log(e.data);
@@ -248,25 +251,35 @@ function draw_graph() {
             left: "right",
         },
         tooltip: {
-            trigger: 'item',
+            trigger: "item",
             formatter: function (params) {
-                if (params.dataType == 'node') {
-                    return 'id: ' + params.data.id + 
-                    '<br>income: ' + params.data.income.toString() + 
-                    '<br>outcome: ' + params.data.outcome.toString()
+                if (params.dataType == "node") {
+                    return (
+                        "id: " +
+                        params.data.id +
+                        "<br>income: " +
+                        params.data.income.toString() +
+                        "<br>outcome: " +
+                        params.data.outcome.toString()
+                    );
                 }
-                if (params.dataType == 'edge') {
-                    return 'source: ' + params.data.source + 
-                    '<br>target: ' + params.data.target + 
-                    '<br>value: ' + params.data.total.toString()
+                if (params.dataType == "edge") {
+                    return (
+                        "source: " +
+                        params.data.source +
+                        "<br>target: " +
+                        params.data.target +
+                        "<br>value: " +
+                        params.data.total.toString()
+                    );
                 }
-            }
+            },
         },
         legend: [
-        {
-            // selectedMode: 'single',
-            data: ["被骗钱包","涉事钱包","可能流向"]
-        }
+            {
+                // selectedMode: 'single',
+                data: ["被骗钱包", "涉事钱包", "可能流向"],
+            },
         ],
         series: [
             {
@@ -275,13 +288,17 @@ function draw_graph() {
                 layout: "force",
                 data: [],
                 links: [],
-                categories: [{name:"被骗钱包"},{name:"涉事钱包"},{name:"可能流向"}],
+                categories: [
+                    { name: "被骗钱包" },
+                    { name: "涉事钱包" },
+                    { name: "可能流向" },
+                ],
                 roam: true,
-				// 添加箭头
-				edgeSymbol: ['none', 'arrow'],
-				edgeSymbolSize: [0, 5],
-				// 可拖拽
-				draggable: true,
+                // 添加箭头
+                edgeSymbol: ["none", "arrow"],
+                edgeSymbolSize: [0, 5],
+                // 可拖拽
+                draggable: true,
                 label: {
                     position: "right",
                 },
@@ -295,8 +312,78 @@ function draw_graph() {
             },
         ],
     };
-	
-	chart.setOption(option);
+
+    chart.setOption(option);
+    chart.on("click", function (params) {
+        d3.select("#record").selectAll("*").remove();
+        if (params.dataType == "node") {
+            let width = 0.25 * $(window).width();
+            let height = $(window).height();
+            let entry_height = 0.05 * height;
+            let max_height =
+                entry_height * (5 + params.data.transactions.length);
+            let svg = d3
+                .select("#record")
+                .append("svg")
+                .attr("viewBox", "0, 0, " + width + ", " + max_height);
+            // id, income, outcome
+            let meta_datas = [
+                { address: params.data.id },
+                { income: params.data.income / rate},
+                { outcome: params.data.outcome / rate },
+            ];
+            for (let i = 0; i < meta_datas.length; ++i) {
+                let key = Object.keys(meta_datas[i])[0];
+                let val = meta_datas[i][key];
+				let color = key == "address" ? "yellow" : "lightblue";
+                let g = svg.append("g").attr("transform", function (d, _) {
+                    return "translate(0, " + i * entry_height + ")";
+                });
+                g.append("rect")
+                    .attr("width", width)
+                    .attr("height", entry_height)
+                    .attr("stroke", "white")
+                    .attr("stroke-width", 0.8)
+                    .attr("fill", color)
+                    .attr("fill-opacity", 0.5);
+                g.append("text")
+                    .attr("dy", "1em")
+                    .text(key + ": " + val);
+            }
+            for (let i = 0; i < params.data.transactions.length; ++i) {
+                let g = svg.append("g").attr("transform", function (d, _) {
+                    return (
+                        "translate(0, " +
+                        (i + meta_datas.length) * entry_height +
+                        ")"
+                    );
+                });
+                let txn = params.data.transactions[i];
+                let color, addr;
+                if (txn.source == params.data.id) {
+                    color = "red";
+                    addr = txn.target;
+                } else {
+                    color = "lightgreen";
+                    addr = txn.source;
+                }
+                g.append("rect")
+                    .attr("width", width)
+                    .attr("height", entry_height)
+					.attr("stroke", "white")
+                    .attr("stroke-width", 0.8)
+                    .attr("fill", color)
+                    .attr("fill-opacity", 0.5);
+
+                g.append("text")
+                    .attr("dy", "1em")
+                    .text(addr + " " + txn.value / rate);
+            }
+        }
+        if (params.dataType == "edge") {
+            console.log(params.data);
+        }
+    });
 
     // 对option_update测试
     // console.log(adjust_data(graph));
@@ -321,7 +408,9 @@ function draw_timeline() {
     var global_width = $(window).width();
     var global_height = $(window).height();
 
-	timeline = Array.from(timeline).sort((a, b) => a - b).map((d) => new Date(d * 1000));
+    timeline = Array.from(timeline)
+        .sort((a, b) => a - b)
+        .map((d) => new Date(d * 1000));
 
     var sliderFill = d3
         .sliderBottom()
@@ -329,14 +418,14 @@ function draw_timeline() {
         .max(d3.max(timeline))
         .width(0.5 * global_width)
         .tickFormat(d3.timeFormat("%m-%d %Hh"))
-		.step(1000 * 60 * 60)
+        .step(1000 * 60 * 60)
         .fill("#2196f3")
-        .on('onchange', timestamp => {
-			unix_time = timestamp.getTime() / 1000;
-			let option = chart.getOption();
-			option = option_update(unix_time, option);
-			chart.setOption(option);
-        })
+        .on("onchange", (timestamp) => {
+            unix_time = timestamp.getTime() / 1000;
+            let option = chart.getOption();
+            option = option_update(unix_time, option);
+            chart.setOption(option);
+        });
 
     var gFill = d3
         .select("#timeline")
@@ -344,15 +433,15 @@ function draw_timeline() {
         .attr("width", global_width)
         .attr("height", 0.15 * global_height)
         .append("g")
-        .attr("transform", "translate(300,30)")
+        .attr("transform", "translate(300,30)");
 
     gFill.call(sliderFill);
 }
 
 // main() 函数
 function main() {
-	init();
-	draw_timeline();
+    init();
+    draw_timeline();
     draw_graph();
 }
 
