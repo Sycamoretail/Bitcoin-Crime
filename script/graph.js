@@ -1,6 +1,6 @@
 var min_time = 0,
     max_time = 1e30; // 时间窗口，min_time 和 max_time 分别表示最小时间和最大时间
-var data_file = "./data/project.json";
+var data_file = "./data/new_project.json";
 const ADDR = "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh";
 let fontFamily;
 let DATA;
@@ -14,13 +14,15 @@ let timeline;
 const value_threshold = 5000000;
 const rate = 1e8;
 let markNode;
+let painting;
+let isPainting;
 
 function set_ui() {
     // 设置字体
     let ua = navigator.userAgent.toLowerCase();
     // fontFamily = "Khand-Regular";
     fontFamily = "楷体";
-    if (/\(i[^;]+;( U;)? CPU.+Mac OS X/gi.test(ua)) {
+    if (/\(i[^;]+;( U;)? CPU.+Mac OS X/gi.test(ua)) {
         fontFamily = "PingFangSC-Regular";
     }
     d3.select("body").style("font-family", fontFamily);
@@ -122,6 +124,11 @@ function option_update(timestamp, option) {
                     output_map: {},
                     category: c1,
                     group: g1,
+                    painted: 0,
+                    itemStyle: {
+                        color: undefined,
+                        opacity: 1,
+                    },
                 });
             }
             if (!nodeSet.has(item.target)) {
@@ -144,6 +151,11 @@ function option_update(timestamp, option) {
                     output_map: {},
                     category: c2,
                     group: g2,
+                    painted: 0,
+                    itemStyle: {
+                        color: undefined,
+                        opacity: 1,
+                    },
                 });
             }
             // 查看是否是图中没有的边
@@ -155,6 +167,11 @@ function option_update(timestamp, option) {
                     target: item.target,
                     total: 0,
                     transactions: [],
+                    painted: 0,
+                    lineStyle: {
+                        color: undefined,
+                        opacity: 1,
+                    },
                 });
             }
             global_index += 1;
@@ -171,9 +188,43 @@ function option_update(timestamp, option) {
             if (item.source == node.id) {
                 node.outcome += item.value;
                 node.transactions.push(item);
+                curr_value = item.value;
+                // if (node.output_map[item.target] == undefined) {
+                //     node.output_map[item.target] = {}
+                // }
+                while (curr_value > 0) {
+                    let head = node.input_queue[0];
+                    if (head == undefined) {
+                        if (node.output_map[node.id] == undefined) {
+                            node.output_map[node.id] = {}
+                        }
+                        if (node.output_map[node.id][item.target] == undefined) {
+                            node.output_map[node.id][item.target] = 0;
+                        }
+                        node.output_map[node.id][item.target] += curr_value;
+                        break;
+                    }
+                    if (node.output_map[head.src] == undefined) {
+                        node.output_map[head.src] = {}
+                    }
+                    if (node.output_map[head.src][item.target] == undefined) {
+                        node.output_map[head.src][item.target] = 0;
+                    }
+                    if (head.val > curr_value) {
+                        node.input_queue[0] -= curr_value;
+                        node.output_map[head.src][item.target] += curr_value;
+                        curr_value = 0;
+                    }
+                    else {
+                        curr_value -= head.val;
+                        node.input_queue.shift();
+                        node.output_map[head.src][item.target] += head.val;
+                    }
+                }
             } else if (item.target == node.id) {
                 node.income += item.value;
                 node.transactions.push(item);
+                node.input_queue.push({src: item.source, val: item.value})
             }
             node.index += 1;
         }
@@ -187,17 +238,18 @@ function option_update(timestamp, option) {
             node.category = node.group;
         }
 
-        function input_queue_update() {
-            // 更新input queue的接口
-            return [];
-        }
+        // function input_queue_update() {
+        //     // 更新input queue的接口
 
-        function output_map_update() {
-            // 更新output map的接口
-            return {};
-        }
-        node.input_queue = input_queue_update();
-        node.output_map = output_map_update();
+        //     return [];
+        // }
+
+        // function output_map_update() {
+        //     // 更新output map的接口
+        //     return {};
+        // }
+        // node.input_queue = input_queue_update();
+        // node.output_map = output_map_update();
         return node;
     }
 
@@ -252,10 +304,56 @@ function option_update(timestamp, option) {
             option.series[0].links[idx] = link_update(link);
             // console.log(option.series[0].links[idx]);
         } catch (e) {
-            console.log(e.msg);
-            console.log(e.data);
+            if (e != undefined) {
+                console.log(e.msg);
+                console.log(e.data);
+            }
         }
     });
+
+    function paint(node, src, val_p, val_t, tot) {
+        for (let dst in node.output_map[src]) {
+            next_val_p = 0;
+            next_val_t = 0;
+            for (let edge of option.series[0].links) {
+                if (edge.source == node.id && edge.target == dst) {
+                    next_val_p = (val_p * node.output_map[src][dst]) / val_t;
+                    next_val_t = edge.total;
+                    edge.lineStyle.opacity = next_val_p / tot;
+                }
+            }
+            for (let next_node of option.series[0].data) {
+                if (next_node.id == dst) {
+                    next_node.itemStyle.opacity = next_val_p / tot;
+                    paint(next_node, node.id, next_val_p, next_val_t, tot);
+                }
+            }
+        }
+    }
+    
+    if (isPainting) {
+        for (let edge of option.series[0].links) {
+            edge.lineStyle.opacity = 0.00005;
+            edge.lineStyle.color = 'black';
+        }
+        for (let node of option.series[0].data) {
+            if (node.id != painting.id) {
+                node.itemStyle.opacity = 0.00005;
+            }
+            node.itemStyle.color = 'black';
+        }
+        paint(painting, painting.id, painting.outcome, painting.outcome, painting.outcome);
+    }
+    else {
+        for (let edge of option.series[0].links) {
+            edge.lineStyle.opacity = 1;
+            edge.lineStyle.color = undefined;
+        }
+        for (let node of option.series[0].data) {
+            node.itemStyle.opacity = 1;
+            node.itemStyle.color = undefined;
+        }
+    }
 
     return option;
 }
@@ -287,7 +385,8 @@ function draw_graph() {
                         "<br>income: " +
                         params.data.income.toString() +
                         "<br>outcome: " +
-                        params.data.outcome.toString()
+                        params.data.outcome.toString() + 
+                        (isPainting ? ("<br>percentage: " + params.data.itemStyle.opacity.toString()) : "")
                     );
                 }
                 if (params.dataType == "edge") {
@@ -297,7 +396,8 @@ function draw_graph() {
                         "<br>target: " +
                         params.data.target +
                         "<br>value: " +
-                        params.data.total.toString()
+                        params.data.total.toString() + 
+                        (isPainting ? ("<br>percentage: " + params.data.lineStyle.opacity.toString()) : "")
                     );
                 }
             },
@@ -342,6 +442,10 @@ function draw_graph() {
     };
 
     chart.setOption(option);
+
+    // 染色函数
+    
+
     chart.on("click", function (params) {
         d3.select('#show_info').remove();
 
@@ -494,6 +598,50 @@ function draw_graph() {
                 .attr("dy", "2.5em")
                 .attr("x", -3)
                 .text(select_text);
+
+            let select_svg2 = d3
+                .select("#select")
+                .append("svg");
+            let select_g2 = select_svg2.append("g")
+                .attr("transform",`translate(${width*0.7},${height*0.02})`)
+
+            select_g2.append("rect")
+                .attr("width", width*0.6)
+                .attr("height", height*0.04)
+                .attr("rx", 8)
+                .attr("stroke", "white")
+                .attr("stroke-width", 1)
+                .attr("fill", 'blue')
+                .attr("fill-opacity", 0.5)
+                .on("mouseover",function(e,d){
+                    d3.select(this).attr("stroke","black");
+                })
+                .on("mouseout",function(e,d){
+                    d3.select(this).attr("stroke","white");
+                })
+                .on("click",function(e,d){
+                    if (isPainting == 1) {
+                        painting = null;
+                        isPainting = 0;
+                    }
+                    else {
+                        painting = params.data;
+                        isPainting = 1;
+                    }
+                    let new_option = chart.getOption();
+                    new_option = option_update(null, new_option);
+                    chart.setOption(new_option);
+                    // select_g.selectAll('*').remove();
+                });
+
+            let select_text2 = '染色该钱包';
+            if (isPainting == 1) {
+                select_text2 = '取消染色';
+            }
+            select_g2.append("text")
+                .attr("dy", "2.5em")
+                .attr("x", -3)
+                .text(select_text2);
 
         }
         if (params.dataType == "edge") {
