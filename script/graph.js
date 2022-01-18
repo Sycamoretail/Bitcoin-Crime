@@ -593,51 +593,54 @@ function draw_graph() {
             // let select_svg2 = d3
             //     .select("#select")
             //     .append("svg");
-            let select_g2 = select_svg.append("g")
-                .attr("transform", `translate(${width*0.625},${height*0.02})`);
+            if (params.data.group == 0)
+            {
+                let select_g2 = select_svg.append("g")
+                    .attr("transform", `translate(${width*0.625},${height*0.02})`);
 
 
-            select_g2.append("rect")
-                // .attr('class', 'button')
-                .attr("width", width * 0.25)
-                .attr("height", height * 0.04)
-                .attr("rx", 8)
-                .attr("stroke", "white")
-                .attr("stroke-width", 1)
-                .attr("fill", 'blue')
-                .attr("fill-opacity", 0.5)
-                // .attr('value', "染色该钱包"
-                .on("mouseover", function(e, d) {
-                    d3.select(this).attr("stroke", "black");
-                })
-                .on("mouseout", function(e, d) {
-                    d3.select(this).attr("stroke", "white");
-                })
-                .on("click", function(e, d) {
-                    // console.log('isPainting', isPainting);
-                    if (isPainting == 1) {
-                        painting = null;
-                        isPainting = 0;
-                        select_g2.select('text').text("染色");
-                    } else {
-                        painting = params.data;
-                        isPainting = 1;
-                        select_g2.select('text').text("取消");
-                    }
-                    let new_option = chart.getOption();
-                    new_option = option_update(null, new_option);
-                    chart.setOption(new_option);
-                    // select_g.selectAll('*').remove();
-                });
+                select_g2.append("rect")
+                    // .attr('class', 'button')
+                    .attr("width", width * 0.25)
+                    .attr("height", height * 0.04)
+                    .attr("rx", 8)
+                    .attr("stroke", "white")
+                    .attr("stroke-width", 1)
+                    .attr("fill", 'blue')
+                    .attr("fill-opacity", 0.5)
+                    // .attr('value', "染色该钱包"
+                    .on("mouseover", function(e, d) {
+                        d3.select(this).attr("stroke", "black");
+                    })
+                    .on("mouseout", function(e, d) {
+                        d3.select(this).attr("stroke", "white");
+                    })
+                    .on("click", function(e, d) {
+                        // console.log('isPainting', isPainting);
+                        if (isPainting == 1) {
+                            painting = null;
+                            isPainting = 0;
+                            select_g2.select('text').text("染色");
+                        } else {
+                            painting = params.data;
+                            isPainting = 1;
+                            select_g2.select('text').text("取消");
+                        }
+                        let new_option = chart.getOption();
+                        new_option = option_update(null, new_option);
+                        chart.setOption(new_option);
+                        // select_g.selectAll('*').remove();
+                    });
 
-            let select_text2 = '染色';
-            if (isPainting == 1) {
-                select_text2 = '取消';
-            };
-            select_g2.append("text")
-                .attr("dy", height * 0.025)
-                .attr("x", width * 0.05)
-                .text(select_text2);
+                let select_text2 = '染色';
+                if (isPainting == 1) {
+                    select_text2 = '取消';
+                };
+                select_g2.append("text")
+                    .attr("dy", height * 0.025)
+                    .attr("x", width * 0.05)
+                    .text(select_text2);
+            }
 
         }
         if (params.dataType == "edge") {
