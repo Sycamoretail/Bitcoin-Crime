@@ -15,7 +15,7 @@ const value_threshold = 5000000;
 const rate = 1e8;
 let markNode;
 let painting;
-let isPainting;
+let isPainting = 0;
 
 function set_ui() {
     // 设置字体
@@ -34,9 +34,9 @@ function init() {
     // DATA = DATA.filter((a) => a.target != "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh" || a.value > 100000)
     DATA = DATA.filter(
         (a) =>
-            a.time < 1596211200 &&
-            (a.target != ADDR ||
-                (a.target == ADDR && a.value >= value_threshold))
+        a.time < 1596211200 &&
+        (a.target != ADDR ||
+            (a.target == ADDR && a.value >= value_threshold))
     ); // 2020-08-01 00:00:00
     nodeSet = new Set();
     linkSet = new Set();
@@ -68,7 +68,7 @@ function backward(option) {
     nodeSet = new Set();
     linkSet = new Set();
     global_index = 0;
-    option.series.forEach(function (d) {
+    option.series.forEach(function(d) {
         d.data = [];
         d.links = [];
     });
@@ -79,7 +79,7 @@ function option_update(timestamp, option) {
 
     // 首先查看是否有新的节点、边加入
     // console.log(timestamp, DATA[global_index].time);
-    if(timestamp){
+    if (timestamp) {
         if (global_index > 0 && DATA[global_index - 1].time > timestamp) {
             backward(option);
         }
@@ -107,10 +107,9 @@ function option_update(timestamp, option) {
             if (!nodeSet.has(item.source)) {
                 nodeSet.add(item.source);
                 let c1;
-                if(markNode.has(item.source)){
+                if (markNode.has(item.source)) {
                     c1 = 3;
-                }
-                else{
+                } else {
                     c1 = g1;
                 }
                 new_nodes.push({
@@ -134,10 +133,9 @@ function option_update(timestamp, option) {
             if (!nodeSet.has(item.target)) {
                 nodeSet.add(item.target);
                 let c2;
-                if(markNode.has(item.target)){
+                if (markNode.has(item.target)) {
                     c2 = 3;
-                }
-                else{
+                } else {
                     c2 = g2;
                 }
                 new_nodes.push({
@@ -214,8 +212,7 @@ function option_update(timestamp, option) {
                         node.input_queue[0] -= curr_value;
                         node.output_map[head.src][item.target] += curr_value;
                         curr_value = 0;
-                    }
-                    else {
+                    } else {
                         curr_value -= head.val;
                         node.input_queue.shift();
                         node.output_map[head.src][item.target] += head.val;
@@ -224,17 +221,16 @@ function option_update(timestamp, option) {
             } else if (item.target == node.id) {
                 node.income += item.value;
                 node.transactions.push(item);
-                node.input_queue.push({src: item.source, val: item.value})
+                node.input_queue.push({ src: item.source, val: item.value })
             }
             node.index += 1;
         }
 
         node.symbolSize = nodeScale(node.income);
 
-        if(markNode.has(node.id)){
+        if (markNode.has(node.id)) {
             node.category = 3;
-        }
-        else{
+        } else {
             node.category = node.group;
         }
 
@@ -266,7 +262,7 @@ function option_update(timestamp, option) {
     }
 
     // update node
-    option.series[0].data.forEach(function (node, idx) {
+    option.series[0].data.forEach(function(node, idx) {
         // console.log(idx);
         // console.log("node before update:");
         // console.log(node);
@@ -288,7 +284,7 @@ function option_update(timestamp, option) {
     });
 
     // update link
-    option.series[0].links.forEach(function (link, idx) {
+    option.series[0].links.forEach(function(link, idx) {
         // console.log(idx);
         // console.log("link before update:");
         // console.log(link);
@@ -330,7 +326,7 @@ function option_update(timestamp, option) {
             }
         }
     }
-    
+
     if (isPainting) {
         for (let edge of option.series[0].links) {
             edge.lineStyle.opacity = 0.00005;
@@ -343,8 +339,7 @@ function option_update(timestamp, option) {
             node.itemStyle.color = 'black';
         }
         paint(painting, painting.id, painting.outcome, painting.outcome, painting.outcome);
-    }
-    else {
+    } else {
         for (let edge of option.series[0].links) {
             edge.lineStyle.opacity = 1;
             edge.lineStyle.color = undefined;
@@ -377,7 +372,7 @@ function draw_graph() {
         },
         tooltip: {
             trigger: "item",
-            formatter: function (params) {
+            formatter: function(params) {
                 if (params.dataType == "node") {
                     return (
                         "id: " +
@@ -385,7 +380,7 @@ function draw_graph() {
                         "<br>income: " +
                         params.data.income.toString() +
                         "<br>outcome: " +
-                        params.data.outcome.toString() + 
+                        params.data.outcome.toString() +
                         (isPainting ? ("<br>percentage: " + params.data.itemStyle.opacity.toString()) : "")
                     );
                 }
@@ -396,68 +391,66 @@ function draw_graph() {
                         "<br>target: " +
                         params.data.target +
                         "<br>value: " +
-                        params.data.total.toString() + 
+                        params.data.total.toString() +
                         (isPainting ? ("<br>percentage: " + params.data.lineStyle.opacity.toString()) : "")
                     );
                 }
             },
         },
-        legend: [
-            {
-                // selectedMode: 'single',
-                data: ["被骗钱包", "涉事钱包", "可能流向", "标记钱包"],
+        legend: [{
+            // selectedMode: 'single',
+            data: ["被骗钱包", "涉事钱包", "可能流向", "标记钱包"],
+        }, ],
+        color: ['#c89b40', '#f0c239', '#fa8c35', '#9d2933'],
+        series: [{
+            // name: '',
+            type: "graph",
+            layout: "force",
+            data: [],
+            links: [],
+            categories: [
+                { name: "被骗钱包" },
+                { name: "涉事钱包" },
+                { name: "可能流向" },
+                { name: "标记钱包" },
+            ],
+            roam: true,
+            // 添加箭头
+            edgeSymbol: ["none", "arrow"],
+            edgeSymbolSize: [0, 5],
+            // 可拖拽
+            draggable: true,
+            label: {
+                position: "right",
             },
-        ],
-        series: [
-            {
-                // name: '',
-                type: "graph",
-                layout: "force",
-                data: [],
-                links: [],
-                categories: [
-                    { name: "被骗钱包" },
-                    { name: "涉事钱包" },
-                    { name: "可能流向" },
-                    { name: "标记钱包" },
-                ],
-                roam: true,
-                // 添加箭头
-                edgeSymbol: ["none", "arrow"],
-                edgeSymbolSize: [0, 5],
-                // 可拖拽
-                draggable: true,
-                label: {
-                    position: "right",
-                },
-                force: {
-                    repulsion: 100,
-                },
-                lineStyle: {
-                    color: "source",
-                    curveness: 0.2,
-                },
+            force: {
+                repulsion: 100,
             },
-        ],
+            lineStyle: {
+                color: "source",
+                curveness: 0.2,
+            },
+        }, ],
     };
 
     chart.setOption(option);
 
     // 染色函数
-    
 
-    chart.on("click", function (params) {
+
+    chart.on("click", function(params) {
         d3.select('#show_info').remove();
+        console.log(params);
 
         // d3.select("#record").selectAll("*").remove();
         if (params.dataType == "node") {
-            d3.select('body').append('div').attr('id','show_info').style('position','absolute')
-            .style('right','0%').style('top','0%').style('width','25%').style('height','100%');
+            d3.select('body').append('div').attr('id', 'show_info').style('position', 'absolute')
+                .style('right', '0%').style('top', '0%').style('width', '25%').style('height', '100%');
             // d3.select('#show_info').selectAll('*').remove();
 
             let show_info = d3.select('#show_info');
-            show_info.append('div').attr('id','record').style('width','100%').style('height','90%').style('overflow-y','scroll').style('overflow-x','scroll')
-            show_info.append('div').attr('id','select').style('width','100%').style('height','10%');
+            show_info.append('div').attr('id', 'record').style('width', '100%').style('height', '90%').style('overflow-y', 'scroll').style('overflow-x', 'scroll');
+            show_info.append('div').attr('id', 'select').style('width', '100%').style('height', '10%');
             let width = 0.25 * $(window).width();
             let height = $(window).height();
             let entry_height = 0.05 * height;
@@ -477,7 +470,7 @@ function draw_graph() {
                 let key = Object.keys(meta_datas[i])[0];
                 let val = meta_datas[i][key];
                 let color = key == "wallet" ? "yellow" : "lightblue";
-                let g = svg.append("g").attr("transform", function (d, _) {
+                let g = svg.append("g").attr("transform", function(d, _) {
                     return "translate(0, " + i * entry_height + ")";
                 });
 
@@ -497,31 +490,31 @@ function draw_graph() {
             for (let i = 0; i < params.data.transactions.length; ++i) {
                 let g = svg
                     .append("g")
-                    .attr("transform", function (d, _) {
+                    .attr("transform", function(d, _) {
                         return (
                             "translate(0, " +
                             (i + meta_datas.length) * entry_height +
                             ")"
                         );
                     })
-                    .on("mouseover", function (d) {
+                    .on("mouseover", function(d) {
                         let addr =
-                            txn.source == params.data.id
-                                ? txn.target
-                                : txn.source;
+                            txn.source == params.data.id ?
+                            txn.target :
+                            txn.source;
                         d3.select(this).select("text").text(addr);
-						d3.select(this).select("rect").attr("stroke", "black");
+                        d3.select(this).select("rect").attr("stroke", "black");
                     })
-                    .on("mouseout", function (d) {
+                    .on("mouseout", function(d) {
                         d3.select(this)
                             .select("text")
                             .text(
                                 new Date(txn.time * 1000).toUTCString() +
-                                    " " +
-                                    (txn.value / rate).toFixed(4) +
-                                    "BTC"
+                                " " +
+                                (txn.value / rate).toFixed(4) +
+                                "BTC"
                             );
-						d3.select(this).select("rect").attr("stroke", "white")
+                        d3.select(this).select("rect").attr("stroke", "white")
                     });
 
                 let txn = params.data.transactions[i];
@@ -547,9 +540,9 @@ function draw_graph() {
                     .attr("x", 10)
                     .text(
                         new Date(txn.time * 1000).toUTCString() +
-                            " " +
-                            (txn.value / rate).toFixed(4) +
-                            "BTC"
+                        " " +
+                        (txn.value / rate).toFixed(4) +
+                        "BTC"
                     );
             }
 
@@ -557,32 +550,31 @@ function draw_graph() {
                 .select("#select")
                 .append("svg");
             let select_g = select_svg.append("g")
-                .attr("transform",`translate(${width*0.7},${height*0.02})`)
-            
+                .attr("transform", `translate(${width * 0.125},${height*0.02})`)
+
             select_g.append("rect")
-                .attr("width", width*0.2)
-                .attr("height", height*0.04)
+                .attr("width", width * 0.25)
+                .attr("height", height * 0.04)
                 .attr("rx", 8)
                 .attr("stroke", "white")
                 .attr("stroke-width", 1)
-                .attr("fill", 'red')
+                .attr("fill", '#ff7500')
                 .attr("fill-opacity", 0.5)
-                .on("mouseover",function(e,d){
-                    d3.select(this).attr("stroke","black");
+                .on("mouseover", function(e, d) {
+                    d3.select(this).attr("stroke", "black");
                 })
-                .on("mouseout",function(e,d){
-                    d3.select(this).attr("stroke","white");
+                .on("mouseout", function(e, d) {
+                    d3.select(this).attr("stroke", "white");
                 })
-                .on("click",function(e,d){
-                    if(params.data.category==3){
+                .on("click", function(e, d) {
+                    if (params.data.category == 3) {
                         params.data.category = params.data.group;
                         markNode.delete(params.data.id);
-                        select_g.select('text').text("标记该钱包");
-                    }
-                    else{
+                        select_g.select('text').text("标记");
+                    } else {
                         params.data.category = 3;
                         markNode.add(params.data.id);
-                        select_g.select('text').text("取消该标记");
+                        select_g.select('text').text("取消");
                     }
                     let new_option = chart.getOption();
                     new_option = option_update(null, new_option);
@@ -590,43 +582,48 @@ function draw_graph() {
                     // select_g.selectAll('*').remove();
                 });
 
-            let select_text = '标记该钱包';
-            if(params.data.category==3){
-                select_text = '取消该标记';
+            let select_text = '标记';
+            if (params.data.category == 3) {
+                select_text = '取消';
             }
             select_g.append("text")
-                .attr("dy", "2.5em")
-                .attr("x", -3)
+                .attr("dy", height * 0.025)
+                .attr("x", width * 0.05)
                 .text(select_text);
 
-            let select_svg2 = d3
-                .select("#select")
-                .append("svg");
-            let select_g2 = select_svg2.append("g")
-                .attr("transform",`translate(${width*0.7},${height*0.02})`)
+            // let select_svg2 = d3
+            //     .select("#select")
+            //     .append("svg");
+            let select_g2 = select_svg.append("g")
+                .attr("transform", `translate(${width*0.625},${height*0.02})`);
+
 
             select_g2.append("rect")
-                .attr("width", width*0.6)
-                .attr("height", height*0.04)
+                // .attr('class', 'button')
+                .attr("width", width * 0.25)
+                .attr("height", height * 0.04)
                 .attr("rx", 8)
                 .attr("stroke", "white")
                 .attr("stroke-width", 1)
-                .attr("fill", 'blue')
+                .attr("fill", '#f0c239')
                 .attr("fill-opacity", 0.5)
-                .on("mouseover",function(e,d){
-                    d3.select(this).attr("stroke","black");
+                // .attr('value', "染色该钱包"
+                .on("mouseover", function(e, d) {
+                    d3.select(this).attr("stroke", "black");
                 })
-                .on("mouseout",function(e,d){
-                    d3.select(this).attr("stroke","white");
+                .on("mouseout", function(e, d) {
+                    d3.select(this).attr("stroke", "white");
                 })
-                .on("click",function(e,d){
+                .on("click", function(e, d) {
+                    // console.log('isPainting', isPainting);
                     if (isPainting == 1) {
                         painting = null;
                         isPainting = 0;
-                    }
-                    else {
+                        select_g2.select('text').text("染色");
+                    } else {
                         painting = params.data;
                         isPainting = 1;
+                        select_g2.select('text').text("取消");
                     }
                     let new_option = chart.getOption();
                     new_option = option_update(null, new_option);
@@ -634,24 +631,24 @@ function draw_graph() {
                     // select_g.selectAll('*').remove();
                 });
 
-            let select_text2 = '染色该钱包';
+            let select_text2 = '染色';
             if (isPainting == 1) {
-                select_text2 = '取消染色';
-            }
+                select_text2 = '取消';
+            };
             select_g2.append("text")
-                .attr("dy", "2.5em")
-                .attr("x", -3)
+                .attr("dy", height * 0.025)
+                .attr("x", width * 0.05)
                 .text(select_text2);
 
         }
         if (params.dataType == "edge") {
-            d3.select('body').append('div').attr('id','show_info').style('position','absolute')
-            .style('right','0%').style('top','0%').style('width','25%').style('height','100%');
+            d3.select('body').append('div').attr('id', 'show_info').style('position', 'absolute')
+                .style('right', '0%').style('top', '0%').style('width', '25%').style('height', '100%');
             // d3.select('#show_info').selectAll('*').remove();
 
             let show_info = d3.select('#show_info');
-            show_info.append('div').attr('id','record').style('width','100%').style('height','100%').style('overflow-y','scroll').style('overflow-x','scroll')
-            // show_info.append('div').attr('id','select').style('width','100%').style('height','10%');
+            show_info.append('div').attr('id', 'record').style('width', '100%').style('height', '100%').style('overflow-y', 'scroll').style('overflow-x', 'scroll')
+                // show_info.append('div').attr('id','select').style('width','100%').style('height','10%');
 
             let width = 0.25 * $(window).width();
             let height = $(window).height();
@@ -671,7 +668,7 @@ function draw_graph() {
                 let key = Object.keys(meta_datas[i])[0];
                 let val = meta_datas[i][key];
                 let color = "lightblue";
-                let g = svg.append("g").attr("transform", function (d, _) {
+                let g = svg.append("g").attr("transform", function(d, _) {
                     return "translate(0, " + i * entry_height + ")";
                 });
 
@@ -691,18 +688,18 @@ function draw_graph() {
             for (let i = 0; i < params.data.transactions.length; ++i) {
                 let g = svg
                     .append("g")
-                    .attr("transform", function (d, _) {
+                    .attr("transform", function(d, _) {
                         return (
                             "translate(0, " +
                             (i + meta_datas.length) * entry_height +
                             ")"
                         );
                     })
-                    .on("mouseover", function (d) {
-						d3.select(this).select("rect").attr("stroke", "black");
+                    .on("mouseover", function(d) {
+                        d3.select(this).select("rect").attr("stroke", "black");
                     })
-                    .on("mouseout", function (d) {
-						d3.select(this).select("rect").attr("stroke", "white")
+                    .on("mouseout", function(d) {
+                        d3.select(this).select("rect").attr("stroke", "white")
                     });
 
                 let txn = params.data.transactions[i];
@@ -721,9 +718,9 @@ function draw_graph() {
                     .attr("x", 10)
                     .text(
                         new Date(txn.time * 1000).toUTCString() +
-                            " " +
-                            (txn.value / rate).toFixed(4) +
-                            "BTC"
+                        " " +
+                        (txn.value / rate).toFixed(4) +
+                        "BTC"
                     );
             }
         }
@@ -774,7 +771,7 @@ function draw_timeline() {
     var gFill = d3
         .select("#timeline")
         .append("svg")
-        .attr("width", global_width*0.75)
+        .attr("width", global_width * 0.75)
         .attr("height", 0.15 * global_height)
         .append("g")
         .attr("transform", `translate(${global_width*0.75*0.1},${global_height*0.15*0.5})`);
@@ -789,7 +786,7 @@ function main() {
     draw_graph();
 }
 
-d3.json(data_file).then(function (data) {
+d3.json(data_file).then(function(data) {
     DATA = data;
     set_ui();
     main();

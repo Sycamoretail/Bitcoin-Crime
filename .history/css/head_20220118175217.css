@@ -1,0 +1,20 @@
+p {
+    word-wrap: break-word;
+    /*英文的时候需要加上这句，自动换行*/
+    /*自测了这句话没啥用*/
+    writing-mode: vertical-rl;
+    /*从左向右 从右向左是 writing-mode: vertical-rl;*/
+    writing-mode: tb-rl;
+    /*IE浏览器的从左向右 从右向左是 writing-mode: tb-rl；*/
+    text-align: center;
+    height: 100%;
+    width: 10%;
+    padding: 0px;
+    display: flex;
+    flex-direction: column;
+    /* align-content: center; */
+    /* vertical-align: middle; */
+    justify-content: center;
+    background-color: #d3e0f3;
+    color: black;
+}
