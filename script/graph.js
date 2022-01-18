@@ -209,7 +209,7 @@ function option_update(timestamp, option) {
                         node.output_map[head.src][item.target] = 0;
                     }
                     if (head.val > curr_value) {
-                        node.input_queue[0] -= curr_value;
+                        node.input_queue[0].val -= curr_value;
                         node.output_map[head.src][item.target] += curr_value;
                         curr_value = 0;
                     } else {
@@ -320,7 +320,11 @@ function option_update(timestamp, option) {
             }
             for (let next_node of option.series[0].data) {
                 if (next_node.id == dst) {
-                    next_node.itemStyle.opacity = next_val_p / tot;
+                    if (next_node.itemStyle.opacity == 0.00005) {
+                        next_node.itemStyle.opacity = next_val_p / tot;
+                    } else {
+                        next_node.itemStyle.opacity += next_val_p / tot;
+                    }
                     paint(next_node, node.id, next_val_p, next_val_t, tot);
                 }
             }
@@ -591,55 +595,53 @@ function draw_graph() {
                 .attr("x", width * 0.05)
                 .text(select_text);
 
-            // let select_svg2 = d3
-            //     .select("#select")
-            //     .append("svg");
-            let select_g2 = select_svg.append("g")
-                .attr("transform", `translate(${width*0.625},${height*0.02})`);
+            if (params.data.group == 0) {
+                let select_g2 = select_svg.append("g")
+                    .attr("transform", `translate(${width*0.625},${height*0.02})`);
 
 
-            select_g2.append("rect")
-                // .attr('class', 'button')
-                .attr("width", width * 0.25)
-                .attr("height", height * 0.04)
-                .attr("rx", 8)
-                .attr("stroke", "white")
-                .attr("stroke-width", 1)
-                .attr("fill", '#f0c239')
-                .attr("fill-opacity", 0.5)
-                // .attr('value', "染色该钱包"
-                .on("mouseover", function(e, d) {
-                    d3.select(this).attr("stroke", "black");
-                })
-                .on("mouseout", function(e, d) {
-                    d3.select(this).attr("stroke", "white");
-                })
-                .on("click", function(e, d) {
-                    // console.log('isPainting', isPainting);
-                    if (isPainting == 1) {
-                        painting = null;
-                        isPainting = 0;
-                        select_g2.select('text').text("染色");
-                    } else {
-                        painting = params.data;
-                        isPainting = 1;
-                        select_g2.select('text').text("取消");
-                    }
-                    let new_option = chart.getOption();
-                    new_option = option_update(null, new_option);
-                    chart.setOption(new_option);
-                    // select_g.selectAll('*').remove();
-                });
+                select_g2.append("rect")
+                    // .attr('class', 'button')
+                    .attr("width", width * 0.25)
+                    .attr("height", height * 0.04)
+                    .attr("rx", 8)
+                    .attr("stroke", "white")
+                    .attr("stroke-width", 1)
+                    .attr("fill", '#f0c239')
+                    .attr("fill-opacity", 0.5)
+                    // .attr('value', "染色该钱包"
+                    .on("mouseover", function(e, d) {
+                        d3.select(this).attr("stroke", "black");
+                    })
+                    .on("mouseout", function(e, d) {
+                        d3.select(this).attr("stroke", "white");
+                    })
+                    .on("click", function(e, d) {
+                        // console.log('isPainting', isPainting);
+                        if (isPainting == 1) {
+                            painting = null;
+                            isPainting = 0;
+                            select_g2.select('text').text("染色");
+                        } else {
+                            painting = params.data;
+                            isPainting = 1;
+                            select_g2.select('text').text("取消");
+                        }
+                        let new_option = chart.getOption();
+                        new_option = option_update(null, new_option);
+                        chart.setOption(new_option);
+                        // select_g.selectAll('*').remove();
+                    });
 
-            let select_text2 = '染色';
-            if (isPainting == 1) {
-                select_text2 = '取消';
-            };
-            select_g2.append("text")
-                .attr("dy", height * 0.025)
-                .attr("x", width * 0.05)
-                .text(select_text2);
-
+                let select_text2 = '染色';
+                if (isPainting == 1) {
+                    select_text2 = '取消';
+                };
+                select_g2.append("text")
+                    .attr("dy", height * 0.025)
+                    .attr("x", width * 0.05)
+                    .text(select_text2);
+            }
         }
         if (params.dataType == "edge") {
             d3.select('body').append('div').attr('id', 'show_info').style('position', 'absolute')
