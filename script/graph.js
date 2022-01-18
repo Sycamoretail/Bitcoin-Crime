@@ -1,4 +1,4 @@
-vvar min_time = 0,
+var min_time = 0,
     max_time = 1e30; // 时间窗口，min_time 和 max_time 分别表示最小时间和最大时间
 var data_file = "./data/new_project.json";
 const ADDR = "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh";
