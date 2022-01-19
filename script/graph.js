@@ -320,7 +320,7 @@ function option_update(timestamp, option) {
             }
             for (let next_node of option.series[0].data) {
                 if (next_node.id == dst) {
-                    if (next_node.itemStyle.opacity == 0.00005) {
+                    if (next_node.itemStyle.opacity == 0) {
                         next_node.itemStyle.opacity = next_val_p / tot;
                     } else {
                         next_node.itemStyle.opacity += next_val_p / tot;
@@ -333,12 +333,12 @@ function option_update(timestamp, option) {
 
     if (isPainting) {
         for (let edge of option.series[0].links) {
-            edge.lineStyle.opacity = 0.00005;
+            edge.lineStyle.opacity = 0;
             edge.lineStyle.color = 'black';
         }
         for (let node of option.series[0].data) {
             if (node.id != painting.id) {
-                node.itemStyle.opacity = 0.00005;
+                node.itemStyle.opacity = 0;
             }
             node.itemStyle.color = 'black';
         }
